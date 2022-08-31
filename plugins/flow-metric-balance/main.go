@@ -79,12 +79,12 @@ func pluginFeature(info, option map[string]*structpb.Value) (sdk.CallResponse, e
 		if state == pluginpb.STATE_SUCCESS {
 			if balance < 0.25 {
 				severity = pluginpb.SEVERITY_CRITICAL
-				contentMSG = "Current balance:" + fmt.Sprintf("%.4f", balance) + " is lower than Recommended  0.25FLOW."
+				contentMSG = "Current balance:" + fmt.Sprintf("%.8f", balance) + " is lower than Recommended  0.25FLOW."
 				log.Warn().
 					Str(methodName, "CRITICAL: "+contentMSG).
 					Msg(pluginName)
 			} else {
-				contentMSG = "Current Balance is " + fmt.Sprintf("%.4f", balance) + "FLOW."
+				contentMSG = "Current Balance is " + fmt.Sprintf("%.8f", balance) + "FLOW."
 				log.Info().
 					Str(methodName, "INFO: "+contentMSG).
 					Msg(pluginName)
