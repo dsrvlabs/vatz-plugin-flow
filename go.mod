@@ -1,7 +1,6 @@
 module flow-metric-balance
 
-go 1.18
-
+go 1.21
 require (
 	github.com/dsrvlabs/vatz-proto v0.0.0-20220420191920-c7decada518f
 	github.com/dsrvlabs/vatz/sdk v0.0.0-20220623210118-db2b8bb4e243
