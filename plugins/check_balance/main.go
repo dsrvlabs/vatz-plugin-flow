@@ -21,7 +21,7 @@ const (
 	defaultAddr   = "127.0.0.1"
 	defaultPort   = 10001
 	defaultTarget = "localhost"
-	pluginName    = "flow-metric-balance"
+	pluginName    = "check_balance"
 	methodName    = "FlowGetBalance"
 )
 
