@@ -1,4 +1,4 @@
-module flow-metric-balance
+module github.com/dsrvlabs/vatz-plugin-flow
 
 go 1.21
 require (
