@@ -72,24 +72,24 @@ func pluginFeature(info, option map[string]*structpb.Value) (sdk.CallResponse, e
 		state = pluginpb.STATE_FAILURE
 		severity = pluginpb.SEVERITY_ERROR
 		log.Error().
-			Str(methodName, "Parsing Error from Current BlockHeight").
+			Str(methodName, "Parsing Error from Current SealedHeight").
 			Msg(pluginName)
 	}
 	BHValInt := int(BHValFloat)
 	if state == pluginpb.STATE_SUCCESS {
 		if preBlockHeight == -1 {
 			preBlockHeight = BHValInt
-			contentMSG = "Setting checked first value of BlockHeight"
+			contentMSG = "Setting checked first value of SealedHeight"
 		} else {
 			diff := BHValInt - preBlockHeight
 			if diff < 1 {
 				severity = pluginpb.SEVERITY_CRITICAL
-				contentMSG = "Block Height's increase has halted for the moment by (" + fmt.Sprintf("%d", diff) + ") > " + fmt.Sprintf("%d", preBlockHeight) + " | " + fmt.Sprintf("%d", BHValInt)
+				contentMSG = "Sealed Height's increase has halted for the moment by (" + fmt.Sprintf("%d", diff) + ") > " + fmt.Sprintf("%d", preBlockHeight) + " | " + fmt.Sprintf("%d", BHValInt)
 			} else if diff < blockDiff {
 				severity = pluginpb.SEVERITY_ERROR
-				contentMSG = "Block Height is NOT increasing for the moment by (" + fmt.Sprintf("%d", diff) + ") > " + fmt.Sprintf("%d", preBlockHeight) + " | " + fmt.Sprintf("%d", BHValInt)
+				contentMSG = "Sealed Height is NOT increasing for the moment by (" + fmt.Sprintf("%d", diff) + ") > " + fmt.Sprintf("%d", preBlockHeight) + " | " + fmt.Sprintf("%d", BHValInt)
 			} else {
-				contentMSG = "Block Height is increasing by (" + fmt.Sprintf("%d", diff) + ") from " + fmt.Sprintf("%d", preBlockHeight) + " To " + fmt.Sprintf("%d", BHValInt)
+				contentMSG = "Sealed Height is increasing by (" + fmt.Sprintf("%d", diff) + ") from " + fmt.Sprintf("%d", preBlockHeight) + " To " + fmt.Sprintf("%d", BHValInt)
 				log.Info().
 					Str(methodName, contentMSG).
 					Msg(pluginName)
