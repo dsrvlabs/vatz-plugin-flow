@@ -19,7 +19,7 @@ import (
 const (
 	// Default values.
 	defaultAddr   = "127.0.0.1"
-	defaultPort   = 10001
+	defaultPort   = 10003
 	defaultTarget = "localhost"
 	pluginName    = "check_balance"
 	methodName    = "FlowGetBalance"
@@ -33,14 +33,16 @@ var (
 
 func init() {
 	flag.StringVar(&addr, "addr", defaultAddr, "IP Address(e.g. 0.0.0.0, 127.0.0.1)")
-	flag.IntVar(&port, "port", defaultPort, "Port number, default 10001")
+	flag.IntVar(&port, "port", defaultPort, "Port number, default 10003")
 	flag.StringVar(&target, "target", defaultTarget, "Target Node (e.g. 0.0.0.0, default localhost)")
 	flag.Parse()
 }
 
 func main() {
 	p := sdk.NewPlugin(pluginName)
-	p.Register(pluginFeature)
+	if err := p.Register(pluginFeature); err != nil {
+		log.Fatal().Err(err).Msg("Failed to register plugin feature")
+	}
 
 	ctx := context.Background()
 	if err := p.Start(ctx, addr, port); err != nil {
@@ -101,16 +103,10 @@ func pluginFeature(info, option map[string]*structpb.Value) (sdk.CallResponse, e
 }
 
 func runCommand(cmd string) (string, error) {
-	stdOutput := ""
 	out, err := exec.Command("bash", "-c", cmd).Output()
 	if err != nil {
-		log.Error().
-			Str(methodName, "Fail to get connected number of peers").
-			Msg(pluginName)
-		return stdOutput, err
+		log.Error().Str(methodName, "Fail to get block height").Msg(pluginName)
+		return "", err
 	}
-	outputFinal := strings.TrimSpace(string(out))
-	stdOutput = outputFinal
-	return stdOutput, nil
-
+	return strings.TrimSpace(string(out)), nil
 }

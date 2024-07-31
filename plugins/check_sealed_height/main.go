@@ -44,7 +44,9 @@ func init() {
 
 func main() {
 	p := sdk.NewPlugin(pluginName)
-	p.Register(pluginFeature)
+	if err := p.Register(pluginFeature); err != nil {
+		log.Fatal().Err(err).Msg("Failed to register plugin feature")
+	}
 
 	ctx := context.Background()
 	if err := p.Start(ctx, addr, port); err != nil {
@@ -54,70 +56,65 @@ func main() {
 
 func pluginFeature(info, option map[string]*structpb.Value) (sdk.CallResponse, error) {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339})
-	state := pluginpb.STATE_SUCCESS
-	severity := pluginpb.SEVERITY_INFO
-
 	cmd := "curl -s " + target + ":8080/metrics | grep -e ^consensus_compliance_sealed_height"
-	contentMSG := ""
+
 	cmdOutput, err := runCommand(cmd)
 	if err != nil {
-		state = pluginpb.STATE_FAILURE
-		severity = pluginpb.SEVERITY_ERROR
-		contentMSG = "Fail to get Sealed Height at first time"
-
+		log.Error().Str(methodName, "Fail to get sealed_height").Msg(pluginName)
+		return createResponse(pluginpb.STATE_FAILURE, pluginpb.SEVERITY_ERROR, "Fail to get block height due to runCMD"), nil
 	}
 	bHeightCurrent := strings.Split(cmdOutput, " ")
-	BHValFloat, errParse := strconv.ParseFloat(bHeightCurrent[1], 64)
-	if errParse != nil {
-		state = pluginpb.STATE_FAILURE
-		severity = pluginpb.SEVERITY_ERROR
-		log.Error().
-			Str(methodName, "Parsing Error from Current SealedHeight").
-			Msg(pluginName)
-	}
-	BHValInt := int(BHValFloat)
-	if state == pluginpb.STATE_SUCCESS {
-		if preBlockHeight == -1 {
-			preBlockHeight = BHValInt
-			contentMSG = "Setting checked first value of SealedHeight"
-		} else {
-			diff := BHValInt - preBlockHeight
-			if diff < 1 {
-				severity = pluginpb.SEVERITY_CRITICAL
-				contentMSG = "Sealed Height's increase has halted for the moment by (" + fmt.Sprintf("%d", diff) + ") > " + fmt.Sprintf("%d", preBlockHeight) + " | " + fmt.Sprintf("%d", BHValInt)
-			} else if diff < blockDiff {
-				severity = pluginpb.SEVERITY_ERROR
-				contentMSG = "Sealed Height is NOT increasing for the moment by (" + fmt.Sprintf("%d", diff) + ") > " + fmt.Sprintf("%d", preBlockHeight) + " | " + fmt.Sprintf("%d", BHValInt)
-			} else {
-				contentMSG = "Sealed Height is increasing by (" + fmt.Sprintf("%d", diff) + ") from " + fmt.Sprintf("%d", preBlockHeight) + " To " + fmt.Sprintf("%d", BHValInt)
-				log.Info().
-					Str(methodName, contentMSG).
-					Msg(pluginName)
-			}
-			preBlockHeight = BHValInt
-		}
+	if len(bHeightCurrent) < 2 {
+		log.Error().Str(methodName, "Unexpected format from block height command output").Msg(pluginName)
+		return createResponse(pluginpb.STATE_FAILURE, pluginpb.SEVERITY_ERROR, "Unexpected format from sealed height command output"), nil
 	}
 
-	ret := sdk.CallResponse{
+	BHValFloat, errParse := strconv.ParseFloat(bHeightCurrent[1], 64)
+	if errParse != nil {
+		log.Error().Str(methodName, "Parsing Error from Current BlockHeight").Msg(pluginName)
+		return createResponse(pluginpb.STATE_FAILURE, pluginpb.SEVERITY_ERROR, "Parsing Error from Current sealedHeight"), nil
+	}
+
+	var contentMSG string
+	severity := pluginpb.SEVERITY_INFO
+	BHValInt := int(BHValFloat)
+
+	if preBlockHeight == -1 {
+		preBlockHeight = BHValInt
+		contentMSG = "Checking First value of Sealed Height"
+	} else {
+		diff := BHValInt - preBlockHeight
+		if diff < 1 {
+			severity = pluginpb.SEVERITY_CRITICAL
+			contentMSG = fmt.Sprintf("Block Height's increase has halted for the moment by (%d) > %d | %d", diff, preBlockHeight, BHValInt)
+		} else if diff < blockDiff {
+			severity = pluginpb.SEVERITY_ERROR
+			contentMSG = fmt.Sprintf("Block Height is NOT increasing for the moment by (%d) > %d | %d", diff, preBlockHeight, BHValInt)
+		} else {
+			contentMSG = fmt.Sprintf("Block Height is increasing by (%d) from %d To %d", diff, preBlockHeight, BHValInt)
+			log.Info().Str(methodName, contentMSG).Msg(pluginName)
+		}
+		preBlockHeight = BHValInt
+	}
+
+	return createResponse(pluginpb.STATE_SUCCESS, severity, contentMSG), nil
+}
+
+func createResponse(state pluginpb.STATE, severity pluginpb.SEVERITY, message string) sdk.CallResponse {
+	return sdk.CallResponse{
 		FuncName:   methodName,
-		Message:    contentMSG,
+		Message:    message,
 		Severity:   severity,
 		State:      state,
 		AlertTypes: []pluginpb.ALERT_TYPE{pluginpb.ALERT_TYPE_DISCORD},
 	}
-	return ret, nil
 }
 
 func runCommand(cmd string) (string, error) {
-	stdOutput := ""
 	out, err := exec.Command("bash", "-c", cmd).Output()
 	if err != nil {
-		log.Error().
-			Str(methodName, "Fail to get block height").
-			Msg(pluginName)
-		return stdOutput, err
+		log.Error().Str(methodName, "Fail to get block height").Msg(pluginName)
+		return "", err
 	}
-	outputFinal := strings.TrimSpace(string(out))
-	stdOutput = outputFinal
-	return stdOutput, nil
+	return strings.TrimSpace(string(out)), nil
 }
