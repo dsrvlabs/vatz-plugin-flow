@@ -1,12 +1,13 @@
 module github.com/dsrvlabs/vatz-plugin-flow
 
 go 1.21
+
 require (
 	github.com/dsrvlabs/vatz-proto v0.0.0-20220420191920-c7decada518f
 	github.com/dsrvlabs/vatz/sdk v0.0.0-20220623210118-db2b8bb4e243
 	github.com/rs/zerolog v1.27.0
 	golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f
-	google.golang.org/protobuf v1.28.0
+	google.golang.org/protobuf v1.34.2
 )
 
 require (
